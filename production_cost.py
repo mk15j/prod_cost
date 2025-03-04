@@ -221,8 +221,8 @@ if st.button("🔢 Calculate Production Cost"):
         st.warning("⚠️ Packaging or Trim rate not found. Please check your selections.")
     else:
         # Calculate additional costs
-        prod_a_b_cost = additional_rates["Prod A/Prod B"] * quantity if toggle_states["Prod A/Prod B"] else 0
-        descaling_cost = additional_rates["Descaling"] * quantity if toggle_states["Descaling"] else 0
+        prod_a_b_cost = additional_rates["Prod A/Prod B"] * quantity if toggle_states.get("Prod A/Prod B", False) else 0
+        descaling_cost = additional_rates["Descaling"] * quantity if toggle_states.get("Descaling", False) else 0
 
         # Sum up extra costs excluding Environmental Fee & Electricity Fee
         extra_costs = sum(
@@ -234,8 +234,8 @@ if st.button("🔢 Calculate Production Cost"):
         production_cost = ((packaging_rate + extra_costs) * fg_qty + (trim_rate + terminal_value) * fg_qty + prod_a_b_cost + descaling_cost)
 
         # Apply Environmental and Electricity Fees
-        env_fee = production_cost * additional_rates["Environmental Fee"] if toggle_states["Environmental Fee"] else 0
-        elec_fee = production_cost * additional_rates["Electricity Fee"] if toggle_states["Electricity Fee"] else 0
+        env_fee = production_cost * additional_rates["Environmental Fee"] if toggle_states.get("Environmental Fee", False) else 0
+        elec_fee = production_cost * additional_rates["Electricity Fee"] if toggle_states.get("Electricity Fee", False) else 0
 
         # Final Production Cost
         total_production_cost = production_cost + env_fee + elec_fee
@@ -253,5 +253,6 @@ if st.button("🔢 Calculate Production Cost"):
             st.write(f"Environmental Fee: {env_fee:.2f}")
             st.write(f"Electricity Fee: {elec_fee:.2f}")
             st.write(f"Terminal Fee: {terminal_value:.2f}")
+
             ######
 
