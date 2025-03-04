@@ -198,20 +198,60 @@ yield_percentage = st.number_input("Enter Yield Percentage (%)", min_value=0.0, 
 fg_qty = quantity * (yield_percentage / 100)
 terminal_value = 0.25
 
+# if st.button("🔢 Calculate Production Cost"):
+#     if packaging_rate == 0 or trim_rate == 0:
+#         st.warning("⚠️ Packaging or Trim rate not found. Please check your selections.")
+#     else:
+#         extra_costs = sum(value for key, value in additional_rates.items() if toggle_states.get(key, False))
+#         production_cost = ((packaging_rate + extra_costs) * fg_qty + (trim_rate + terminal_value) * fg_qty)
+
+#         st.success(f"✅ Production Cost: **{production_cost:.2f}**")
+        
+#         with st.expander("📝 Cost Breakdown"):
+#             st.write(f"Packaging Rate: {packaging_rate:.2f}")
+#             st.write(f"Fillet and Trim Rate: {trim_rate:.2f}")
+#             for key, value in additional_rates.items():
+#                 if toggle_states.get(key, False):
+#                     st.write(f"{key}: {value:.2f}")
+#             st.write(f"Terminal Fee: {terminal_value:.2f}")
+
+            ###########
 if st.button("🔢 Calculate Production Cost"):
     if packaging_rate == 0 or trim_rate == 0:
         st.warning("⚠️ Packaging or Trim rate not found. Please check your selections.")
     else:
-        extra_costs = sum(value for key, value in additional_rates.items() if toggle_states.get(key, False))
-        production_cost = ((packaging_rate + extra_costs) * fg_qty + (trim_rate + terminal_value) * quantity)
+        # Calculate additional costs
+        prod_a_b_cost = additional_rates["Prod A/Prod B"] * quantity if toggle_states["Prod A/Prod B"] else 0
+        descaling_cost = additional_rates["Descaling"] * quantity if toggle_states["Descaling"] else 0
 
-        st.success(f"✅ Production Cost: **{production_cost:.2f}**")
-        
+        # Sum up extra costs excluding Environmental Fee & Electricity Fee
+        extra_costs = sum(
+            value for key, value in additional_rates.items()
+            if key not in ["Prod A/Prod B", "Descaling", "Environmental Fee", "Electricity Fee"] and toggle_states.get(key, False)
+        )
+
+        # Initial Production Cost
+        production_cost = ((packaging_rate + extra_costs) * fg_qty + (trim_rate + terminal_value) * fg_qty + prod_a_b_cost + descaling_cost)
+
+        # Apply Environmental and Electricity Fees
+        env_fee = production_cost * additional_rates["Environmental Fee"] if toggle_states["Environmental Fee"] else 0
+        elec_fee = production_cost * additional_rates["Electricity Fee"] if toggle_states["Electricity Fee"] else 0
+
+        # Final Production Cost
+        total_production_cost = production_cost + env_fee + elec_fee
+
+        st.success(f"✅ Production Cost: **{total_production_cost:.2f}**")
+
         with st.expander("📝 Cost Breakdown"):
             st.write(f"Packaging Rate: {packaging_rate:.2f}")
-            st.write(f"Trim Rate: {trim_rate:.2f}")
+            st.write(f"Fillet and Trim Rate: {trim_rate:.2f}")
+            st.write(f"Prod A / Prod B Cost: {prod_a_b_cost:.2f}")
+            st.write(f"Descaling Cost: {descaling_cost:.2f}")
             for key, value in additional_rates.items():
-                if toggle_states.get(key, False):
+                if toggle_states.get(key, False) and key not in ["Environmental Fee", "Electricity Fee"]:
                     st.write(f"{key}: {value:.2f}")
-            st.write(f"Terminal Value: {terminal_value:.2f}")
+            st.write(f"Environmental Fee: {env_fee:.2f}")
+            st.write(f"Electricity Fee: {elec_fee:.2f}")
+            st.write(f"Terminal Fee: {terminal_value:.2f}")
+            ######
 
