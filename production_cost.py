@@ -245,7 +245,7 @@ if st.button("🔢 Calculate Production Cost"):
         with st.expander("📝 Cost Breakdown"):
             st.write(f"Packaging Rate: {packaging_rate:.2f}")
             st.write(f"Fillet and Trim Rate: {trim_rate:.2f}")
-            st.write(f"Prod A / Prod B Cost: {prod_a_b_cost:.2f}")
+            st.write(f"Prod A / Prod B Rate: {prod_a_b_cost/quantity:.2f}")
             st.write(f"Descaling Cost: {descaling_cost:.2f}")
             for key, value in additional_rates.items():
                 if toggle_states.get(key, False) and key not in ["Environmental Fee", "Electricity Fee"]:
