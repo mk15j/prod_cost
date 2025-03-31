@@ -6,12 +6,11 @@ import os
 import time
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
+# Load MongoDB URI from Streamlit Secrets
+MONGO_URI = st.secrets["MONGO_URI"]
 
 if not MONGO_URI:
-    st.error("MongoDB connection string not found! Check your .env file.")
+    st.error("MongoDB connection string not found! Check your Streamlit Secrets.")
     st.stop()
 
 # MongoDB Connection
