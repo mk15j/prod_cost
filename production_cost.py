@@ -1,258 +1,356 @@
 import streamlit as st
+import pandas as pd
+from pymongo import MongoClient
+import bcrypt
+import os
+import time
+from dotenv import load_dotenv
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(page_title="Production Cost Calculator", layout="wide")
+# Load environment variables
+load_dotenv()
+MONGO_URI = os.getenv("MONGO_URI")
 
-# --- DATA DICTIONARIES ---
-packaging_rates = {
-    "Fresh, Fillet, 10 kg, EPS Box & Ice": 2.00,
-    "Fresh, Fillet, 20 kg, EPS Box & Ice": 2.50,
-    "Fresh, Fillet, 15 kg AIR, EPS Box & Gel-Pack/Dry-Ice": 4.00,
-    "Fresh, Fillet, 20 kg AIR, EPS Box & Gel-Pack/Dry-Ice": 4.00,
-    "Fresh, Fillet, 2-3 kg, Vacuum Pack": 4.00,
-    "Fresh, Fillet, 3-4 kg, Vacuum Pack": 3.50,
-    "Fresh, Fillet, 4-5 kg, Vacuum Pack": 3.25,
-    "Fresh, Fillet, 5-6 kg, Vacuum Pack": 3.00,
-    "Fresh, Portion, All, IVP": 3.5,
-    "Fresh, Portion, All, Chain Pack (2) with Rider": 4.25,
-    "Fresh, Portion, All, Chain Pack (3) with Rider": 5.50,
-    "Fresh, Portion, All, Chain Pack (4) with Rider": 4.25,
-    "Fresh, Portion, All, Chain Pack (5) with Rider": 4.25,
-    "Frozen, Fillet, 10 kg, EPS Box & Ice": 2.00,
-    "Frozen, Fillet, 20 kg, EPS Box & Ice": 2.5,
-    "Frozen, Fillet, 2-3 kg, Vacuum Pack": 4.00,
-    "Frozen, Fillet, 3-4 kg, Vacuum Pack": 3.50,
-    "Frozen, Fillet, 4-5 kg, Vacuum Pack": 3.25,
-    "Frozen, Fillet, 5-6 kg, Vacuum Pack": 3.00,
-    "Frozen, Portion, All, IVP": 3.50,
-    "Frozen, Portion, All, Chain Pack (2) with Rider": 4.25,
-    "Frozen, Portion, All, Chain Pack (3) with Rider": 5.50,
-    "Frozen, Portion, All, Chain Pack (4) with Rider": 4.25,
-    "Frozen, Portion, All, Chain Pack (5) with Rider": 4.25,
-    "Frozen, Fillet, 20 kg, Solid Box": 1.75,
-    "Frozen, Fillet, 10 kg, Corrugated Box": 2.00,
-    "Frozen, Fillet, 5 kg, Corrugated Box": 2.25,
-    "Frozen, Portion, 20 kg, Solid Box": 1.75,
-    "Frozen, Portion, 10 kg, Corrugated Box": 2.00,
-    "Frozen, Portion, 5 kg, Corrugated Box": 2.25,
-}
-
-trim_rates = {
-    "1-2 kg, Trim A": 14.2,
-    "2-3 kg, Trim A": 5.7,
-    "3-4 kg, Trim A": 3.95,
-    "4-5 kg, Trim A": 3.45,
-    "5-6 kg, Trim A": 2.95,
-    "6-7 kg, Trim A": 2.95,
-    "7-8 kg, Trim A": 3.97,
-    "8-9 kg, Trim A": 3.95,
-    "> 9 kg, Trim A": 3.95,
-    "1-2 kg, Trim B": 15.2,
-    "2-3 kg, Trim B": 5.95,
-    "3-4 kg, Trim B": 4.2,
-    "4-5 kg, Trim B": 3.7,
-    "5-6 kg, Trim B": 3.2,
-    "6-7 kg, Trim B": 3.2,
-    "7-8 kg, Trim B": 4.2,
-    "8-9 kg, Trim B": 4.2,
-    "> 9 kg, Trim B": 4.2,
-    "1-2 kg, Trim C": 15.7,
-    "2-3 kg, Trim C": 6.2,
-    "3-4 kg, Trim C": 4.45,
-    "4-5 kg, Trim C": 3.95,
-    "5-6 kg, Trim C": 3.45,
-    "6-7 kg, Trim C": 3.45,
-    "7-8 kg, Trim C": 4.45,
-    "8-9 kg, Trim C": 4.45,
-    "> 9 kg, Trim C": 4.45,
-    "1-2 kg, Trim D": 17.7,
-    "2-3 kg, Trim D": 6.45,
-    "3-4 kg, Trim D": 4.7,
-    "4-5 kg, Trim D": 4.2,
-    "5-6 kg, Trim D": 3.7,
-    "6-7 kg, Trim D": 3.7,
-    "7-8 kg, Trim D": 4.7,
-    "8-9 kg, Trim D": 4.7,
-    "> 9 kg, Trim D": 4.7,
-    "1-2 kg, Trim E": 20.7,
-    "2-3 kg, Trim E": 7.7,
-    "3-4 kg, Trim E": 5.95,
-    "4-5 kg, Trim E": 5.45,
-    "5-6 kg, Trim E": 4.95,
-    "6-7 kg, Trim E": 4.95,
-    "7-8 kg, Trim E": 5.95,
-    "8-9 kg, Trim E": 5.95,
-    "> 9 kg, Trim E": 5.95,
-
-}
-packaging_options = {
-    "Fresh, Fillet": {
-        "specifications": ["10 kg", "20 kg", "15 kg AIR", "20 kg AIR", "2-3 kg", "3-4 kg", "4-5 kg", "5-6 kg"],
-        "materials": ["EPS Box & Ice", "EPS Box & Gel-Pack/Dry-Ice", "Vacuum Pack"]
-    },
-    "Fresh, Portion": {
-        "specifications": ["All"],
-        "materials": ["IVP", "Chain Pack (2) with Rider", "Chain Pack (3) with Rider", "Chain Pack (4) with Rider", "Chain Pack (5) with Rider"]
-    },
-    "Frozen, Fillet": {
-        "specifications": ["10 kg", "20 kg", "5 kg", "2-3 kg", "3-4 kg", "4-5 kg", "5-6 kg"],
-        "materials": ["EPS Box & Ice", "Vacuum Pack", "Solid Box", "Corrugated Box"]
-    },
-    "Frozen, Portion": {
-        "specifications": ["20 kg", "10 kg", "5 kg", "All"],
-        "materials": ["Solid Box", "Corrugated Box", "IVP", "Chain Pack (2) with Rider", "Chain Pack (3) with Rider", "Chain Pack (4) with Rider", "Chain Pack (5) with Rider"]
-    }
-}
-
-# --- PAGE TITLE ---
-st.title("🚀 Production Cost Calculator")
-
-# --- SIDEBAR NAVIGATION ---
-
-st.sidebar.title("Links")
-st.sidebar.markdown("[📋 Skagerak Calculator](#)")
-st.sidebar.markdown("[⚙ Settings](#)")
-
-# --- TOGGLE BUTTONS ---
-col1, col2 = st.columns(2)
-with col1:
-    is_fresh = st.toggle("Fresh", value=False)
-with col2:
-    is_frozen = st.toggle("Frozen", value=False)
-
-if is_fresh and is_frozen:
-    st.warning("Please select either Fresh or Frozen, not both.")
+if not MONGO_URI:
+    st.error("MongoDB connection string not found! Check your .env file.")
     st.stop()
-elif not is_fresh and not is_frozen:
-    st.warning("Please select either Fresh or Frozen.")
-    st.stop()
-##
-# --- ADDITIONAL RATES FOR FROZEN ---
-additional_rates = {
-    "Prod A/Prod B": 1.00,
-    "Descaling": 1.50,
-    "Tunnel Freezing": 1.65,
-    "Gyro Freezing": 2.00,
-    "Environmental Fee": 0.03,
-    "Electricity Fee": 0.05,
-    "Portions SkinOn": 2.50,
-    "Portions SkinLess": 3.00,
-}
-toggle_states = {}
-if is_frozen:
-    st.subheader("⚙️ Additional Rates for Frozen Products")
-    for key in additional_rates:
-        toggle_states[key] = st.toggle(key, value=False)
-else:
-    st.subheader("⚙️ Additional Rates for Fresh Products")
-    for key in ["Prod A/Prod B", "Descaling", "Portions SkinOn", "Portions SkinLess"]:
-        toggle_states[key] = st.toggle(key, value=False)
 
-# Ensure mutually exclusive toggles
-if toggle_states["Portions SkinOn"] and toggle_states["Portions SkinLess"]:
-    st.warning("Please select either SkinOn or SkinLess, not both.")
-    st.stop()
-# --- PRODUCT SELECTION ---
-st.subheader("📦 Packaging Details")
-product = st.selectbox("Product", ["Select...", "Fillet", "Portion"])
+# MongoDB Connection
+client = MongoClient(MONGO_URI)
+db = client["user_management"]
+users_collection = db["users"]
+data_collection = db["user_data"]
+rate_collection = db["rates_data"]
+pack_collection = db["pack_data"]
 
-packaging_spec = None
-packaging_material = None
-selected_category = None  # Ensure it's always defined
+# Set Streamlit page config
+st.set_page_config(page_title="Captain Fresh Trient Orders", layout="wide")
 
-if product != "Select...":
-    product_type = "Fresh" if is_fresh else "Frozen"
-    selected_category = f"{product_type}, {product}"
+# Session State Initialization
+if "page" not in st.session_state:
+    st.session_state["page"] = "login"
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+    st.session_state["username"] = ""
+    st.session_state["role"] = ""
+
+def navigate(page):
+    if st.session_state["page"] != page:
+        st.session_state["page"] = page
+        st.write(f"Navigating to {page}")  # Debug message
+        time.sleep(0.5)  # Prevents flickering
+        st.rerun()
+
+def login():
+    st.title("Login Page")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
     
-    if selected_category in packaging_options:
-        packaging_spec = st.selectbox("Packaging Specification", ["Select..."] + packaging_options[selected_category]["specifications"])
-        packaging_material = st.selectbox("Packaging Material", ["Select..."] + packaging_options[selected_category]["materials"])
+    col1, col2 = st.columns([1, 1])
+    if col1.button("Login", key="login_button"):
+        user = users_collection.find_one({"username": username})
+        # st.write(f"User found - {user}")  # Debug info
+
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+            st.session_state["authenticated"] = True
+            st.session_state["username"] = username
+            st.session_state["role"] = user["role"]
+            st.success("Login successful! Redirecting...")
+            time.sleep(1)
+            navigate("user_dashboard" if user["role"] == "user" else "admin_dashboard")
+        else:
+            st.error("Invalid username or password")
+    
+    if col2.button("Register", key="register_button"):
+        navigate("register")
+
+def register():
+    st.title("Register Page")
+    new_username = st.text_input("Choose a username")
+    new_password = st.text_input("Choose a password", type="password")
+    role = st.selectbox("Select Role", ["user", "admin"])
+    
+    col1, col2 = st.columns([1, 1])
+    if col1.button("Submit Registration", key="submit_register"):
+        if not new_username or not new_password:
+            st.error("Username and Password cannot be empty.")
+            return
+
+        if users_collection.find_one({"username": new_username}):
+            st.error("Username already exists! Try another one.")
+        else:
+            hashed_pw = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            users_collection.insert_one({"username": new_username, "password": hashed_pw, "role": role})
+            st.success("Registration successful! Redirecting to login...")
+            time.sleep(1)
+            navigate("login")
+    
+    if col2.button("Back to Login", key="back_to_login"):
+        navigate("login")
+######################
+# Admin CSV Upload Function
+def admin_upload_csv():
+    st.title("Admin: Upload Filleting Rates Data File")
+
+    uploaded_file = st.file_uploader("Upload Rates File", type=["csv"])
+
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+
+        # Validate required columns
+        required_columns = {"product", "trim_type", "rm_spec", "rate_per_kg"}
+        if not required_columns.issubset(df.columns):
+            st.error(f"Filleting file must contain columns: {', '.join(required_columns)}")
+            return
+
+        # Add admin username for tracking
+        username = st.session_state.get("username", "admin")
+
+        # Convert DataFrame to MongoDB format
+        data_list = df.to_dict(orient="records")
+        for item in data_list:
+            item["username"] = username  # Track uploader
+
+        # Insert data into MongoDB
+        rate_collection.insert_many(data_list)
+        st.success("Filleting Rates data uploaded successfully!")
+
+
+######################################################################
+
+# Admin Pack CSV Upload Function
+def pack_upload_csv():
+    st.title("Admin: Upload Packaging Rates Data File")
+
+    uploaded_file = st.file_uploader("Upload Rates File", type=["csv"])
+
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+
+        # Validate required columns
+        required_columns = {"prod_type","product", "box_qty", "pack", "transport_mode", "packaging_rate"}
+        if not required_columns.issubset(df.columns):
+            st.error(f"Packaging file must contain columns: {', '.join(required_columns)}")
+            return
+
+        # Add admin username for tracking
+        username = st.session_state.get("username", "admin")
+
+        # Convert DataFrame to MongoDB format
+        data_list = df.to_dict(orient="records")
+        for item in data_list:
+            item["username"] = username  # Track uploader
+
+        # Insert data into MongoDB
+        pack_collection.insert_many(data_list)
+        st.success("CSV Packaging Rates data uploaded successfully!")
+
+# Admin Dashboard
+def admin_dashboard():
+    st.title("Admin Dashboard")
+    st.write(f"Welcome, {st.session_state['username']}!")
+
+    st.sidebar.subheader("Rates Links")
+
+    if st.sidebar.button("Filleting Rates"):
+        admin_upload_csv()
+        # navigate("admin_upload_csv")
+    elif st.sidebar.button("Packaging Rates"):
+        pack_upload_csv()
+        # navigate("pack_upload_csv")
+    
+    st.subheader("Order Details")
+    users = list(data_collection.find({}, {"_id": 0}))
+    if users:
+        st.table(users)
     else:
-        st.warning("Invalid selection, please choose again.")
-else:
-    st.warning("Please select a product to see packaging options.")
+        st.write("No data available.")
 
-# --- RAW MATERIAL DETAILS ---
-st.subheader("🔍 Raw Material Details")
-rm_spec = st.selectbox("Select RM Spec", ["Select...", "1-2 kg", "2-3 kg", "3-4 kg", "4-5 kg", "5-6 kg", "6-7 kg", "7-8 kg", "8-9 kg", ">9 kg"])
-trim_type = st.selectbox("Select Trim Type", ["Select...", "Trim A", "Trim B", "Trim C", "Trim D", "Trim E"])
 
-# --- Ensure Valid Selections Before Processing ---
-if product and packaging_spec and packaging_material != "Select...":
-    packaging_key = f"{selected_category}, {packaging_spec}, {packaging_material}"
-    packaging_rate = packaging_rates.get(packaging_key, 0)
-else:
-    packaging_key = None
-    # packaging_rate = 0
 
-if rm_spec != "Select..." and trim_type != "Select...":
-    trim_key = f"{rm_spec}, {trim_type}"
-    trim_rate = trim_rates.get(trim_key, 0)
-else:
-    trim_key = None
-    # trim_rate = 0
+# User Dashboard
+def user_dashboard():
+    st.title("Customer Dashboard")
+    st.write(f"Welcome, {st.session_state['username']}!")
 
-# --- INPUTS FOR CALCULATION ---
-quantity = st.number_input("Enter RM Quantity (kg)", min_value=1000.00, step=0.10)
-yield_percentage = st.number_input("Enter Yield Percentage (%)", min_value=0.0, max_value=100.0, value=50.0, step=0.1)
-fg_qty = quantity * (yield_percentage / 100)
-terminal_value = 0.25
-
-# if st.button("🔢 Calculate Production Cost"):
-#     if packaging_rate == 0 or trim_rate == 0:
-#         st.warning("⚠️ Packaging or Trim rate not found. Please check your selections.")
-#     else:
-#         extra_costs = sum(value for key, value in additional_rates.items() if toggle_states.get(key, False))
-#         production_cost = ((packaging_rate + extra_costs) * fg_qty + (trim_rate + terminal_value) * fg_qty)
-
-#         st.success(f"✅ Production Cost: **{production_cost:.2f}**")
+    st.sidebar.subheader("User Links")
+    
+     # Create two columns for Order Form and Order Details
+    col1, col2 = st.columns([2, 1], gap="large")  # Increased gap between sections
+    
+    with col1:
+    #   st.subheader("Order Details")
+      user_form()
+    
+    with col2:
+        st.subheader("Compulsory Charges")
+        pallet_charge = 0.3
+        skagerak_charge = 0.25
+        additional_charges_toggle = st.toggle("Compulsory Charges", value=True)
+        st.write(f"**Pallet Charge:** {pallet_charge} per kg")
+        st.write(f"**Skagerak Terminal Charge:** {skagerak_charge} per kg")
         
-#         with st.expander("📝 Cost Breakdown"):
-#             st.write(f"Packaging Rate: {packaging_rate:.2f}")
-#             st.write(f"Fillet and Trim Rate: {trim_rate:.2f}")
-#             for key, value in additional_rates.items():
-#                 if toggle_states.get(key, False):
-#                     st.write(f"{key}: {value:.2f}")
-#             st.write(f"Terminal Fee: {terminal_value:.2f}")
+        # Additional Processing Rates
+        extra_charge = 0
+        pro_rate=0
+        st.subheader("Optional Charges")
+        if st.session_state.get("product") == "Fillet":
+            prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
+            descaling = st.toggle("Descaling (1.50 per kg RM)", value=False)
+            if prod_a_b:
+                extra_charge += 1.00
+            if descaling:
+                extra_charge += 1.50
+        
+        elif st.session_state.get("product") == "Portions":
+            portion_skin_on = st.toggle("Portion Skin On (2.50 per kg)", value=False)
+            portion_skinless = st.toggle("Portion Skinless (3.00 per kg)", value=False)
+            if portion_skin_on:
+                extra_charge += 2.50
+            if portion_skinless:
+                extra_charge += 3.00
+        
+         # Additional Freezing and Storage Charges
+            
+        if st.session_state.get("prod_type") == "Frozen":
+            st.subheader("Frozen Charges")
+            tunnel_freezing = st.toggle("Tunnel Freezing (1.65 per kg)", value=False)
+            gyro_freezing = st.toggle("Gyro Freezing (2.00 per kg)", value=False)
+            reception_fee = st.toggle("Reception Fee (0.15 per kg)", value=True)
+            dispatch_fee = st.toggle("Dispatch Fee (0.15 per kg)", value=True)
+            environmental_fee = st.toggle("Environmental Fee (3% of Total Rate)", value=True)
+            electricity_fee = st.toggle("Electricity Fee (5% of Total Rate)", value=True)
+            
+            if tunnel_freezing:
+                pro_rate += 1.65
+            if gyro_freezing:
+                pro_rate += 2.00
+            if environmental_fee:
+                pro_rate += pro_rate * 0.03
+            if electricity_fee:
+                pro_rate += pro_rate * 0.05
+            if reception_fee:
+                pro_rate += 0.15
+            if dispatch_fee:
+                pro_rate += 0.15
+            
+        
+        st.session_state["extra_charge"] = extra_charge
+        st.session_state["pro_charge"] = pro_rate
+    
 
-            ###########
-if st.button("🔢 Calculate Production Cost"):
-    if packaging_rate == 0 or trim_rate == 0:
-        st.warning("⚠️ Packaging or Trim rate not found. Please check your selections.")
+# User Form
+def user_form():
+    st.subheader("Order Form")
+
+    product = st.selectbox("Product", ["Fillet", "Portions"], key="product")
+    trim_type = st.selectbox("Trim Type", ["Trim A", "Trim B", "Trim C", "Trim D", "Trim E"], key="trim_type")
+    rm_spec = st.selectbox("RM Spec", ["1-2 kg", "2-3 kg", "3-4 kg", "4-5 kg", "5-6 kg", "6-7 kg", "7-8 kg", "8-9 kg", "9+ kg"], key="rm_spec")
+    yield_value = st.number_input("Yield", min_value=0.0, step=0.01, key="yield")
+    prod_type = st.selectbox("Product Type", ["Fresh", "Frozen"], key="prod_type")
+    pack = st.selectbox("Packaging Type", ["Corrugated Box","Solid Box", "EPS", "EPS AIR", "IVP", "Chain Pack 2R", "Chain Pack 3R", "Chain Pack 4R", "Chain Pack 5R"], key="pack")
+    box_qty = st.selectbox("Packaging Size", ["5 kg", "10 kg", "15 kg AIR", "20 kg AIR", "20 kg", "VAC"], key="box_qty")
+    transport_mode = st.selectbox("Mode of Transport", ["AIR", "regular"], key="transport_mode")
+
+    # Fetch Rate per kg from MongoDB based on selected fields
+    rate_data = rate_collection.find_one({
+        "product": product,
+        "trim_type": trim_type,
+        "rm_spec": rm_spec
+    }, {"rate_per_kg": 1, "_id": 0})
+
+    rate_per_kg = rate_data["rate_per_kg"] if rate_data else "Rate not found"
+    st.write(f"**Filleting Rate per kg:** {rate_per_kg}")
+
+    # Fetch Packaging Rate per kg from MongoDB based on selected fields
+    rate_pack = pack_collection.find_one({
+        "prod_type": prod_type,
+        "product": product,
+        "box_qty": box_qty,
+        "pack": pack,
+        "transport_mode": transport_mode
+    }, {"packaging_rate": 1, "_id": 0})
+    
+    packaging_rate = rate_pack["packaging_rate"] if rate_pack else "Select valid packaging options"
+    st.write(f"**Packaging Rate per kg:** {packaging_rate}")
+
+    extra_charge = st.session_state.get("extra_charge", 0)
+    pro_charge = st.session_state.get("pro_charge", 0)
+    
+    if isinstance(packaging_rate, (int, float)) and isinstance(rate_per_kg, (int, float)):
+        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge  # Including additional charges
+        total_rate = pro_rate + pro_charge  # Including additional charges
+        st.write(f"**Production Rate per kg (incl. additional charges):** {total_rate}")
     else:
-        # Calculate additional costs
-        prod_a_b_cost = additional_rates["Prod A/Prod B"] * quantity if toggle_states.get("Prod A/Prod B", False) else 0
-        descaling_cost = additional_rates["Descaling"] * quantity if toggle_states.get("Descaling", False) else 0
+        st.write("**Production Rate per kg:** Invalid rate data")
 
-        # Sum up extra costs excluding Environmental Fee & Electricity Fee
-        extra_costs = sum(
-            value for key, value in additional_rates.items()
-            if key not in ["Prod A/Prod B", "Descaling", "Environmental Fee", "Electricity Fee"] and toggle_states.get(key, False)
-        )
+    
+    if st.button("Submit Order", key="submit_form"):
+        data_collection.insert_one({
+            "username": st.session_state["username"],
+            "Product": product,
+            "Trim Type": trim_type,
+            "RM Spec": rm_spec,
+            "Yield": yield_value,
+            "Product Type": prod_type,
+            "Box Type": box_qty,
+            "Packaging": pack,
+            "Transport": transport_mode,
+            "Filleting Rate": rate_per_kg,
+            "Packaging Rate": packaging_rate,
+            "Pallet Charge": 0.3,
+            "Skagerak Terminal Charge": 0.25,
+            "Additional Processing Charges": extra_charge,
+            "Total Rate": total_rate
+        })
+        st.success("Form submitted successfully!")
 
-        # Initial Production Cost
-        production_cost = ((packaging_rate + extra_costs) * fg_qty + (trim_rate + terminal_value) * fg_qty + prod_a_b_cost + descaling_cost)
+# Orders Page
+def user_orders():
+    st.title("Your Orders")
+    st.write("Here are all your submitted orders.")
 
-        # Apply Environmental and Electricity Fees
-        env_fee = production_cost * additional_rates["Environmental Fee"] if toggle_states.get("Environmental Fee", False) else 0
-        elec_fee = production_cost * additional_rates["Electricity Fee"] if toggle_states.get("Electricity Fee", False) else 0
+    user_orders = list(data_collection.find({"username": st.session_state["username"]}, {"_id": 0, "username": 0}))
+    if user_orders:
+        st.table(user_orders)
+    else:
+        st.write("No orders found.")
 
-        # Final Production Cost
-        total_production_cost = production_cost + env_fee + elec_fee
 
-        st.success(f"✅ Production Cost: **{total_production_cost:.2f}**")
+######################
+# Sidebar Navigation
+st.sidebar.title("Navigation")
+if st.session_state["authenticated"]:
+    if st.session_state["role"] == "admin":
+        if st.sidebar.button("Admin Dashboard", key="admin_dashboard"):
+            navigate("admin_dashboard")
+    else:
+        if st.sidebar.button("User Dashboard", key="user_dashboard"):
+            navigate("user_dashboard")
+        if st.sidebar.button("Your Orders", key="user_orders"):
+            navigate("user_orders")
+    
+    if st.sidebar.button("Logout", key="logout"):
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = ""
+        navigate("login")
+else:
+    if st.sidebar.button("Login", key="sidebar_login"):
+        navigate("login")
+    if st.sidebar.button("Register", key="sidebar_register"):
+        navigate("register")
 
-        with st.expander("📝 Cost Breakdown"):
-            st.write(f"Packaging Rate: {packaging_rate:.2f}")
-            st.write(f"Fillet and Trim Rate: {trim_rate:.2f}")
-            st.write(f"Prod A / Prod B Cost: {prod_a_b_cost:.2f}")
-            st.write(f"Descaling Cost: {descaling_cost:.2f}")
-            for key, value in additional_rates.items():
-                if toggle_states.get(key, False) and key not in ["Environmental Fee", "Electricity Fee"]:
-                    st.write(f"{key}: {value:.2f}")
-            st.write(f"Environmental Fee: {env_fee:.2f}")
-            st.write(f"Electricity Fee: {elec_fee:.2f}")
-            st.write(f"Terminal Fee: {terminal_value:.2f}")
-
-            ######
-
+# Page Routing
+if st.session_state["authenticated"]:
+    st.write(f"Welcome, {st.session_state['username']}!")  # Debugging message
+    if st.session_state["page"] == "user_dashboard":
+        user_dashboard()
+    elif st.session_state["page"] == "admin_dashboard":
+        admin_dashboard()
+    elif st.session_state["page"] == "user_orders":
+        user_orders()
+else:
+    st.warning("Please log in to continue.")  # Helps debug blank screen
+    if st.session_state["page"] == "login":
+        login()
+    elif st.session_state["page"] == "register":
+        register()
