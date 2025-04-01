@@ -295,8 +295,7 @@ def user_form():
 
     
     if isinstance(packaging_rate, (int, float)) and isinstance(rate_per_kg, (int, float)):
-        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge 
-         # prod_a_b_charge/yield_value + descaling_charge/yield_value # Including additional charges
+        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge + prod_a_b_charge + descaling_charge # Including additional charges
         total_rate = pro_rate + pro_charge  # Including additional charges
         st.write(f"**Production Rate per kg (incl. additional charges):** {total_rate}")
     else:
