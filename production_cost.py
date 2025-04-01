@@ -314,7 +314,7 @@ def user_form():
 
 # Orders Page
 def user_orders():
-    st.title("Order Detailss")
+    st.title("Submitted Order Details")
     st.write("All submitted orders.")
 
     user_orders = list(data_collection.find({"username": st.session_state["username"]}, {"_id": 0, "username": 0}))
