@@ -223,14 +223,23 @@ def user_dashboard():
                 pro_rate += 1.65
             if gyro_freezing:
                 pro_rate += 2.00
-            if environmental_fee:
-                pro_rate += pro_rate * 0.03
-            if electricity_fee:
-                pro_rate += pro_rate * 0.05
+            # if environmental_fee:
+            #     pro_rate += pro_rate * 0.03
+            # if electricity_fee:
+            #     pro_rate += pro_rate * 0.05
+            # if reception_fee:
+            #     pro_rate += 0.15
+            # if dispatch_fee:
+            #     pro_rate += 0.15
             if reception_fee:
                 pro_rate += 0.15
             if dispatch_fee:
                 pro_rate += 0.15
+            if environmental_fee:
+                env_rate = pro_rate * 0.03
+            if electricity_fee:
+                elec_rate = pro_rate * 0.05
+            pro_rate += env_rate + elec_rate
             
         
         st.session_state["extra_charge"] = extra_charge
