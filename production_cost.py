@@ -191,7 +191,7 @@ def user_dashboard():
         # Additional Processing Rates
         extra_charge = 0
         pro_rate=0
-        yield_value =33.0
+        # yield_value =33.0
         st.subheader("Optional Charges")
         if st.session_state.get("product") == "Fillet":
             prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
