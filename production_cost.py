@@ -195,6 +195,7 @@ def user_dashboard():
         prod_a_b_charge = 0.0
         descaling_charge = 0.0
         yield_value = st.session_state.get("yield_value", "N/A")
+        st.write(f"**Yield Value:** {yield_value}")
         st.subheader("Optional Charges")
         if st.session_state.get("product") == "Fillet":
             prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
