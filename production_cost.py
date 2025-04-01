@@ -253,7 +253,7 @@ def user_dashboard():
 
 # User Form
 def user_form():
-    st.subheader("Order Form")
+    st.subheader("Enquiry Form")
 
     product = st.selectbox("Product", ["Fillet", "Portions"], key="product")
     trim_type = st.selectbox("Trim Type", ["Trim A", "Trim B", "Trim C", "Trim D", "Trim E"], key="trim_type")
@@ -301,7 +301,7 @@ def user_form():
         st.write("**Production Rate per kg:** Invalid rate data")
 
     
-    if st.button("Submit Order", key="submit_form"):
+    if st.button("Submit Enquiry", key="submit_form"):
         data_collection.insert_one({
             "username": st.session_state["username"],
             "Product": product,
@@ -323,8 +323,8 @@ def user_form():
 
 # Orders Page
 def user_orders():
-    st.title("Submitted Order Details")
-    st.write("All submitted orders.")
+    st.title("Submitted Enquiries Details")
+    st.write("All submitted enquiries.")
 
     user_orders = list(data_collection.find({"username": st.session_state["username"]}, {"_id": 0, "username": 0}))
     if user_orders:
@@ -343,7 +343,7 @@ if st.session_state["authenticated"]:
     else:
         if st.sidebar.button("User Dashboard", key="user_dashboard"):
             navigate("user_dashboard")
-        if st.sidebar.button("Your Orders", key="user_orders"):
+        if st.sidebar.button("Enquiries", key="user_orders"):
             navigate("user_orders")
     
     if st.sidebar.button("Logout", key="logout"):
