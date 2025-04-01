@@ -326,7 +326,7 @@ def user_orders():
 
 ######################
 # Sidebar Navigation
-st.sidebar.title("Navigation")
+st.sidebar.title("User Links")
 if st.session_state["authenticated"]:
     if st.session_state["role"] == "admin":
         if st.sidebar.button("Admin Dashboard", key="admin_dashboard"):
