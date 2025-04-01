@@ -243,7 +243,7 @@ def user_dashboard():
                 env_rate = pro_rate * 0.03
             if electricity_fee:
                 elec_rate = pro_rate * 0.05
-            pro_rate += env_rate + elec_rate
+            pro_rate = pro_rate + env_rate + elec_rate
             
         st.session_state["prod_a_b_charge"] = prod_a_b_charge
         st.session_state["descaling_charge"] = descaling_charge
@@ -294,7 +294,8 @@ def user_form():
 
     
     if isinstance(packaging_rate, (int, float)) and isinstance(rate_per_kg, (int, float)):
-        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge + prod_a_b_charge/yield_value + descaling_charge/yield_value # Including additional charges
+        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge 
+         # prod_a_b_charge/yield_value + descaling_charge/yield_value # Including additional charges
         total_rate = pro_rate + pro_charge  # Including additional charges
         st.write(f"**Production Rate per kg (incl. additional charges):** {total_rate}")
     else:
