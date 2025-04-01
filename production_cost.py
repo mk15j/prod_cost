@@ -191,14 +191,15 @@ def user_dashboard():
         # Additional Processing Rates
         extra_charge = 0
         pro_rate=0
+        yield_value =33.0
         st.subheader("Optional Charges")
         if st.session_state.get("product") == "Fillet":
             prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
             descaling = st.toggle("Descaling (1.50 per kg RM)", value=False)
             if prod_a_b:
-                extra_charge = extra_charge + (1.00/yield_value)
+                extra_charge = extra_charge + (1.00/yield_value or 1)
             if descaling:
-                extra_charge = extra_charge + (1.50/yield_value)
+                extra_charge = extra_charge + (1.50/yield_value or 1)
         
         elif st.session_state.get("product") == "Portions":
             portion_skin_on = st.toggle("Portion Skin On (2.50 per kg)", value=False)
@@ -253,7 +254,7 @@ def user_form():
     product = st.selectbox("Product", ["Fillet", "Portions"], key="product")
     trim_type = st.selectbox("Trim Type", ["Trim A", "Trim B", "Trim C", "Trim D", "Trim E"], key="trim_type")
     rm_spec = st.selectbox("RM Spec", ["1-2 kg", "2-3 kg", "3-4 kg", "4-5 kg", "5-6 kg", "6-7 kg", "7-8 kg", "8-9 kg", "9+ kg"], key="rm_spec")
-    yield_value = st.number_input("Yield", min_value=0.0, step=0.01, key="yield")
+    yield_value = st.number_input("Yield", min_value=33.0, step=0.1, key="yield")
     prod_type = st.selectbox("Product Type", ["Fresh", "Frozen"], key="prod_type")
     pack = st.selectbox("Packaging Type", ["Corrugated Box","Solid Box", "EPS", "EPS AIR", "IVP", "Chain Pack 2R", "Chain Pack 3R", "Chain Pack 4R", "Chain Pack 5R"], key="pack")
     box_qty = st.selectbox("Packaging Size", ["5 kg", "10 kg", "15 kg AIR", "20 kg AIR", "20 kg", "VAC"], key="box_qty")
