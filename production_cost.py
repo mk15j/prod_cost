@@ -196,9 +196,9 @@ def user_dashboard():
             prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
             descaling = st.toggle("Descaling (1.50 per kg RM)", value=False)
             if prod_a_b:
-                extra_charge += 1.00
+                extra_charge = extra_charge + (1.00/yield_value)
             if descaling:
-                extra_charge += 1.50
+                extra_charge = extra_charge + (1.50/yield_value)
         
         elif st.session_state.get("product") == "Portions":
             portion_skin_on = st.toggle("Portion Skin On (2.50 per kg)", value=False)
