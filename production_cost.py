@@ -184,6 +184,7 @@ def user_dashboard():
         st.subheader("Compulsory Charges")
         pallet_charge = 0.3
         skagerak_charge = 0.25
+        
         additional_charges_toggle = st.toggle("Compulsory Charges", value=True)
         st.write(f"**Pallet Charge:** {pallet_charge} per kg")
         st.write(f"**Skagerak Terminal Charge:** {skagerak_charge} per kg")
@@ -191,15 +192,17 @@ def user_dashboard():
         # Additional Processing Rates
         extra_charge = 0
         pro_rate=0
+        prod_a_b_charge = 0.0
+        descaling_charge = 0.0
         # yield_value =33.0
         st.subheader("Optional Charges")
         if st.session_state.get("product") == "Fillet":
             prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
             descaling = st.toggle("Descaling (1.50 per kg RM)", value=False)
             if prod_a_b:
-                extra_charge = extra_charge + (100/yield_value or 1)
+                prod_a_b_charge = 1.00
             if descaling:
-                extra_charge = extra_charge + (150/yield_value or 1)
+                descaling_charge = 1.50
         
         elif st.session_state.get("product") == "Portions":
             portion_skin_on = st.toggle("Portion Skin On (2.50 per kg)", value=False)
@@ -242,7 +245,8 @@ def user_dashboard():
                 elec_rate = pro_rate * 0.05
             pro_rate += env_rate + elec_rate
             
-        
+        st.session_state["prod_a_b_charge"] = prod_a_b_charge
+        st.session_state["descaling_charge"] = descaling_charge
         st.session_state["extra_charge"] = extra_charge
         st.session_state["pro_charge"] = pro_rate
     
@@ -284,9 +288,13 @@ def user_form():
 
     extra_charge = st.session_state.get("extra_charge", 0)
     pro_charge = st.session_state.get("pro_charge", 0)
+    prod_a_b_charge = st.session_state.get("prod_a_b_charge", 0)
+    descaling_charge = st.session_state.get("descaling_charge", 0)
+    
+
     
     if isinstance(packaging_rate, (int, float)) and isinstance(rate_per_kg, (int, float)):
-        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge  # Including additional charges
+        pro_rate = packaging_rate + rate_per_kg + 0.3 + 0.25 + extra_charge + prod_a_b_charge/yield_value + descaling_charge/yield_value # Including additional charges
         total_rate = pro_rate + pro_charge  # Including additional charges
         st.write(f"**Production Rate per kg (incl. additional charges):** {total_rate}")
     else:
