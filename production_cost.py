@@ -157,7 +157,7 @@ def admin_dashboard():
         pack_upload_csv()
         # navigate("pack_upload_csv")
     
-    st.subheader("Order Details")
+    st.subheader("Enquiries Details")
     users = list(data_collection.find({}, {"_id": 0}))
     if users:
         st.table(users)
@@ -168,7 +168,7 @@ def admin_dashboard():
 
 # User Dashboard
 def user_dashboard():
-    st.title("Customer Dashboard")
+    st.title("User Dashboard")
     # st.write(f"Welcome, {st.session_state['username']}!")
 
     st.sidebar.subheader("User Links")
@@ -177,7 +177,7 @@ def user_dashboard():
     col1, col2 = st.columns([2, 1], gap="large")  # Increased gap between sections
     
     with col1:
-    #   st.subheader("Order Details")
+    #   st.subheader("Enquiries Details")
       user_form()
     
     with col2:
