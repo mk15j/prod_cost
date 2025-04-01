@@ -194,15 +194,15 @@ def user_dashboard():
         pro_rate=0
         prod_a_b_charge = 0.0
         descaling_charge = 0.0
-        # yield_value =33.0
+        yield_value = st.session_state.get("yield_value", "N/A")
         st.subheader("Optional Charges")
         if st.session_state.get("product") == "Fillet":
             prod_a_b = st.toggle("ProdA/B (1.00 per kg RM)", value=False)
             descaling = st.toggle("Descaling (1.50 per kg RM)", value=False)
             if prod_a_b:
-                prod_a_b_charge = 1.00
+                prod_a_b_charge = (1.00/yield_value)*100
             if descaling:
-                descaling_charge = 1.50
+                descaling_charge = (1.50/yield_value)*100
         
         elif st.session_state.get("product") == "Portions":
             portion_skin_on = st.toggle("Portion Skin On (2.50 per kg)", value=False)
@@ -263,7 +263,7 @@ def user_form():
     pack = st.selectbox("Packaging Type", ["Corrugated Box","Solid Box", "EPS", "EPS AIR", "IVP", "Chain Pack 2R", "Chain Pack 3R", "Chain Pack 4R", "Chain Pack 5R"], key="pack")
     box_qty = st.selectbox("Packaging Size", ["5 kg", "10 kg", "15 kg AIR", "20 kg AIR", "20 kg", "VAC"], key="box_qty")
     transport_mode = st.selectbox("Mode of Transport", ["AIR", "regular"], key="transport_mode")
-
+    st.session_state["yield_value"] = yield_value  
     # Fetch Rate per kg from MongoDB based on selected fields
     rate_data = rate_collection.find_one({
         "product": product,
