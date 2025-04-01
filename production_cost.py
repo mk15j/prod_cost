@@ -169,7 +169,7 @@ def admin_dashboard():
 # User Dashboard
 def user_dashboard():
     st.title("Customer Dashboard")
-    st.write(f"Welcome, {st.session_state['username']}!")
+    # st.write(f"Welcome, {st.session_state['username']}!")
 
     st.sidebar.subheader("User Links")
     
