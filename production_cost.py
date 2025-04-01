@@ -317,7 +317,7 @@ def user_form():
             "Packaging Rate": packaging_rate,
             "Pallet Charge": 0.3,
             "Skagerak Terminal Charge": 0.25,
-            "Additional Processing Charges": extra_charge,
+            "Additional Processing Charges": extra_charge + prod_a_b_charge + descaling_charge + pro_charge,
             "Total Rate": total_rate
         })
         st.success("Form submitted successfully!")
